@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import json
-
 from novaclient import base
 from novaclient import utils
 
@@ -31,21 +29,25 @@ class VirtualInterfaceManager(base.ManagerWithFind):
                          "virtual_interfaces")
 
     def create(self, network_id, instance_id):
-        body = {'address': {'network_id': network_id,
-                            'instance_id': instance_id}}
-        return self._create('/os-virtual-interfaces', body,
-                            'virtual_interfaces',
-                            return_raw=True)
+        body = {'virtual_interface': {'network_id': network_id}}
+        return self._create('/servers/%s/os-virtual-interfaces' % instance_id,
+                            body, 'virtual_interfaces', return_raw=True)
+
+    def delete(self, instance_id, interface_id):
+        return self._delete('/servers/%s/os-virtual-interfaces/%s' %
+                            (instance_id, interface_id))
+
+
+def ip_dict_formatter(ip_dict):
+    net_id = ip_dict["network_id"]
+    ip_addr = ip_dict["address"]
+    label = ip_dict["network_label"]
+    return "label=%s, network_id=%s, ip_address=%s" % (label,
+                                                       net_id, ip_addr)
 
 
 def ip_address_formatter(field):
-    addresses = []
-    for addr in field.ip_addresses:
-        net_id = field.ip_addresses[0]["network_id"]
-        ip_addr = field.ip_addresses[0]["address"]
-        label = field.ip_addresses[0]["network_label"]
-        addresses.append("label=%s, network_id=%s, ip_address=%s" % (label,
-                                                            net_id, ip_addr))
+    addresses = [ip_dict_formatter(addr) for addr in field.ip_addresses]
     return ",".join(addresses)
 
 
@@ -74,4 +76,20 @@ def do_virtual_interface_create(cs, args):
                                                              args.network_id,
                                                              args.instance_id)
     for address in addresses:
-        utils.print_dict(address)
+        addr_list = [ip_dict_formatter(a) for a in address["ip_addresses"]]
+        addr_dict = {"id": address["uuid"],
+                     "mac_address": address["address"],
+                     "ip_addresses": ','.join(addr_list)}
+        utils.print_dict(addr_dict)
+
+
+@utils.arg('instance_id', metavar='<instance_id>',
+           help="Instance to remove the virtual interface from")
+@utils.arg('interface_id', metavar='<interface_id>',
+           help='ID of the virtual interface to delete')
+def do_virtual_interface_delete(cs, args):
+    """
+    Removes the specified virtual interface from an instance
+    """
+    cs.os_virtual_interfaces_python_novaclient_ext.delete(args.instance_id,
+                                                          args.interface_id)
