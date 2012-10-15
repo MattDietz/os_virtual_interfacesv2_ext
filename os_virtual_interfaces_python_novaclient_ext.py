@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import json
+
 from novaclient import base
 from novaclient import utils
 
@@ -36,6 +38,17 @@ class VirtualInterfaceManager(base.ManagerWithFind):
                             return_raw=True)
 
 
+def ip_address_formatter(field):
+    addresses = []
+    for addr in field.ip_addresses:
+        net_id = field.ip_addresses[0]["network_id"]
+        ip_addr = field.ip_addresses[0]["address"]
+        label = field.ip_addresses[0]["network_label"]
+        addresses.append("label=%s, network_id=%s, ip_address=%s" % (label,
+                                                            net_id, ip_addr))
+    return ",".join(addresses)
+
+
 @utils.arg('instance_id', metavar='<instance_id>',
            help="ID of the instance you want to display virtual"
                 "interfaces for")
@@ -45,7 +58,8 @@ def do_virtual_interface_list(cs, args):
     """
     vifs = cs.os_virtual_interfaces_python_novaclient_ext.list(
                                                         args.instance_id)
-    utils.print_list(vifs, ["id", "mac_address"])
+    utils.print_list(vifs, ["id", "mac_address", "ip_addresses"],
+                     formatters={"ip_addresses": ip_address_formatter})
 
 
 @utils.arg('network_id', metavar='<network_id>',
