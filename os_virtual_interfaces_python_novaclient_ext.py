@@ -25,16 +25,17 @@ class VirtualInterfaceManager(base.ManagerWithFind):
     resource_class = base.Resource
 
     def list(self, instance_id):
-        return self._list("/servers/%s/os-virtual-interfaces" % instance_id,
+        return self._list("/servers/%s/os-virtual-interfacesv2" % instance_id,
                          "virtual_interfaces")
 
     def create(self, network_id, instance_id):
         body = {'virtual_interface': {'network_id': network_id}}
-        return self._create('/servers/%s/os-virtual-interfaces' % instance_id,
+        return self._create('/servers/%s/os-virtual-interfacesv2' %
+                            instance_id,
                             body, 'virtual_interfaces', return_raw=True)
 
     def delete(self, instance_id, interface_id):
-        return self._delete('/servers/%s/os-virtual-interfaces/%s' %
+        return self._delete('/servers/%s/os-virtual-interfacesv2/%s' %
                             (instance_id, interface_id))
 
 
